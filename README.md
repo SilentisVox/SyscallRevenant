@@ -16,6 +16,8 @@ This combination is designed to bypass userland hooks during the subsequent sysc
 Do not use this on machines you do not have permission to use.
 Do not use this to leverage and communicate with machines that you do not have authorization to use.
 
+###### Special thank you to **Ava**.
+
 ## Preamble.
 
 Indirect syscalls is a method of executing `syscall` instructions in trusted userland space.
@@ -121,3 +123,9 @@ LONG VectoredExceptionHandler(EXCEPTION_POINTERS *BreakPoint) {
         ...
 }
 ```
+
+## References.
+
+- Original HellsGate https://github.com/am0nsec/HellsGate/tree/master
+- Original HalosGate https://blog.sektor7.net/#!res/2021/halosgate.md
+- DLL Proxying https://0xdarkvortex.dev/proxying-dll-loads-for-hiding-etwti-stack-tracing
