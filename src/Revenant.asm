@@ -19,11 +19,6 @@ global          INDIRECT
 global          TRAMPOLINE_EXIT
 
 TRAMPOLINE:
-        TRAP:
-                PUSHFQ
-                OR      QWORD   [RSP],  0x100
-                POPFQ
-
         INIT:
                 MOV     AL,     BYTE    [LOOKUP]
                 CMP     AL,     1
@@ -32,13 +27,20 @@ TRAMPOLINE:
         PRESERVE:
                 MOV     RAX,    QWORD   [RSP]
                 MOV     QWORD   [FRTN], RAX
-                JMP     INDIRECT
+                JMP     TRAP
 
         FAKE:
                 MOV     RAX,    QWORD   [RSP]
                 MOV     QWORD   [RRTN], RAX
                 MOV     RAX,    QWORD   [FRTN]
+                CMP     RAX,    0
+                JZ      TRAP
                 MOV     QWORD   [RSP],  RAX
+
+        TRAP:
+                PUSHFQ
+                OR      QWORD   [RSP],  0x100
+                POPFQ
 
         INDIRECT:
                 MOV     R10,    RCX
@@ -46,6 +48,8 @@ TRAMPOLINE:
                 JMP     QWORD   [REL ENTRY]
 
         TRAMPOLINE_EXIT:
+                MOV     QWORD   [FRTN],         0
+                MOV     QWORD   [RRTN],         0
                 MOV     BYTE    [LOOKUP],       0
                 RET
 TRAMPOLINE_END:
