@@ -14,68 +14,76 @@
 #define ROR7_32__RtlFreeHeap                    0xC839B3B6
 #define ROR7_32__RtlAddVectoredExceptionHandler 0x22AB404F
 
-typedef struct _MODULE_CONFIG {
-        VOID            *hModule;
-        ULONG           NumberOfNames;
-        ULONG           *AddressOfFunctions;
-        ULONG           *AddressOfNames;
-        USHORT          *AddressOfNameOrdinals;
-} MODULE_CONFIG, * PMODULE_CONFIG;
-
-BOOL 
-NTAPI 
+BOOL
+NTAPI
 ResolveFunction(
-        ULONG           ModuleHash, 
-        ULONG           FunctionHash, 
-        VOID            **pFunction
+        ULONG           ModuleHash,
+        ULONG           FunctionHash,
+        VOID**          pFunction
 );
 
-LONG 
+LONG
 NTAPI
 VectoredExceptionHandler(
-        EXCEPTION_POINTERS *pBreakPoint
+        EXCEPTION_POINTERS* pBreakPoint
 );
 
 PVOID
 NTAPI
 RtlAddVectoredExceptionHandler(
-        ULONG           First, 
-        VOID            *Handler
+        ULONG           First,
+        VOID*           Handler
 );
 
 PVOID
 NTAPI
 RtlAllocateHeap(
-        VOID            *hHeap, 
+        VOID*           hHeap,
         ULONG           Flags,
         ULONG_PTR       Size
 );
 
-BOOL 
+BOOL
 NTAPI
 RtlFreeHeap(
-        VOID            *hHeap, 
-        ULONG           Flags, 
-        VOID            *pAddress
+        VOID*           hHeap,
+        ULONG           Flags,
+        VOID*           pAddress
 );
 
-VOID
-NTAPI
-ReturnAgent();
+extern UCHAR SYSCALL_INFORMATION_LOOKUP;
+extern VOID* REAL_RETURN;
+extern VOID* FUNCTION_ENTRY;
+extern ULONG SYSTEM_SERVICE_NUMBER;
 
-extern VOID *ENTRY;
-extern ULONG SSN;
-extern UCHAR LOOKUP;
-extern VOID* RRTN;
-
-extern VOID *TRAMPOLINE();
-extern VOID *INDIRECT();
+extern VOID* TRAMPOLINE();
+extern VOID* FUNCTION_STUB();
 extern VOID TRAMPOLINE_EXIT();
 
-#define SET_FUNCTION ResolveFunction
-#define RUN_FUNCTION INDIRECT
-#define TRAP_SYSCALL (LOOKUP = 1, TRAMPOLINE)
-#define RUN_SYSCALL (LOOKUP = 0, TRAMPOLINE)
+#define SyscallInformationLookup                                \
+        SYSCALL_INFORMATION_LOOKUP
+
+#define RealReturnAddress                                       \
+        REAL_RETURN
+
+#define FunctionEntry                                           \
+        FUNCTION_ENTRY
+
+#define SystemServiceNumber                                     \
+        SYSTEM_SERVICE_NUMBER
+
+
+#define SET_FUNCTION(ModuleHash, FunctionHash)                  \
+        ResolveFunction(ModuleHash, FunctionHash, &FunctionEntry)
+
+#define RUN_FUNCTION                                            \
+        FUNCTION_STUB
+
+#define TRAP_SYSCALL                                            \
+        (SYSCALL_INFORMATION_LOOKUP = 1, TRAMPOLINE)
+
+#define RUN_SYSCALL                                             \
+        (SYSCALL_INFORMATION_LOOKUP = 0, TRAMPOLINE)
 
 
 #endif // !_RVNT_H

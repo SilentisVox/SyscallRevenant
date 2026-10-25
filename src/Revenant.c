@@ -15,7 +15,7 @@ UINT GetRandom() {
         return r;
 }
 
-ULONG ROR7_32(CONST UCHAR *Name) {
+ULONG ROR7_32(CONST UCHAR* Name) {
         ULONG h = 0, i = 0;
 
         while (Name[i]) {
@@ -25,22 +25,11 @@ ULONG ROR7_32(CONST UCHAR *Name) {
         return h;
 }
 
-VOID InitializeModuleConfig(VOID *hModule, PMODULE_CONFIG pModuleConfig) {
-        VOID    *pNtHeaders                                     = (VOID*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)hModule) + 0x3C));
-        VOID    *pExportDirectory                               = (VOID*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)pNtHeaders) + 0x88));
-
-        pModuleConfig->hModule                                  = hModule;
-        pModuleConfig->NumberOfNames                            = *(ULONG*)(((CHAR*)pExportDirectory) + 0x18);
-        pModuleConfig->AddressOfFunctions                       = (ULONG*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)pExportDirectory) + 0x1C));
-        pModuleConfig->AddressOfNames                           = (ULONG*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)pExportDirectory) + 0x20));
-        pModuleConfig->AddressOfNameOrdinals                    = (USHORT*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)pExportDirectory) + 0x24));
-}
-
-BOOL GetModule(ULONG ModuleHash, VOID **hModule) {
-        VOID    *pProcessEnvironmentBlock                       = __readgsqword(0x60);
-        VOID    *pLoaderData                                    = *(VOID**)(((CHAR*)pProcessEnvironmentBlock) + 0x18);
-        VOID    *pInInitializationOrderModuleList               = (VOID*)(((CHAR*)pLoaderData) + 0x30);
-        VOID    *pModuleList                                    = *(VOID**)pInInitializationOrderModuleList;
+BOOL GetModule(ULONG ModuleHash, VOID** hModule) {
+        VOID* pProcessEnvironmentBlock                          = __readgsqword(0x60);
+        VOID* pLoaderData                                       = *(VOID**)(((CHAR*)pProcessEnvironmentBlock) + 0x18);
+        VOID* pInInitializationOrderModuleList                  = (VOID*)(((CHAR*)pLoaderData) + 0x30);
+        VOID* pModuleList                                       = *(VOID**)pInInitializationOrderModuleList;
 
         while (pInInitializationOrderModuleList != pModuleList) {
                 WCHAR   *Buffer                                 = (WCHAR*)*(VOID**)(((CHAR*)pModuleList) + 0x40);
@@ -62,32 +51,35 @@ BOOL GetModule(ULONG ModuleHash, VOID **hModule) {
         return FALSE;
 }
 
-BOOL GetFunction(VOID *hModule, ULONG FunctionHash, VOID **pFunction) {
-        MODULE_CONFIG ModuleConfig                              = { 0 };
-        InitializeModuleConfig(hModule, &ModuleConfig);
+BOOL GetFunction(VOID* hModule, ULONG FunctionHash, VOID** pFunction) {
+        VOID* pNtHeaders                                        = (VOID*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)hModule) + 0x3C));
+        VOID* pExportDirectory                                  = (VOID*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)pNtHeaders) + 0x88));
 
-        for (ULONG i = 0; i < ModuleConfig.NumberOfNames; i++) {
-                ULONG FunctionNameRva                           = ModuleConfig.AddressOfNames[i];
-                UCHAR *FunctionName                             = (UCHAR*)hModule + FunctionNameRva;
+        ULONG NumberOfNames                                     = *(ULONG*)(((CHAR*)pExportDirectory) + 0x18);
+        ULONG* pAddressOfFunctions                              = (ULONG*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)pExportDirectory) + 0x1C));
+        ULONG* pAddressOfNames                                  = (ULONG*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)pExportDirectory) + 0x20));
+        USHORT* pAddressOfNameOrdinals                          = (USHORT*)(((CHAR*)hModule) + *(ULONG*)(((CHAR*)pExportDirectory) + 0x24));
 
-                if (ROR7_32(FunctionName) != FunctionHash) {
+        for (ULONG i = 0; i < NumberOfNames; i++) {
+                UCHAR *FunctionName                             = (UCHAR*)hModule + pAddressOfNames[i];
+
+                if (ROR7_32(FunctionName) != FunctionHash)
                         continue;
-                }
-                USHORT FunctionOrdinal                          = ModuleConfig.AddressOfNameOrdinals[i];
-                ULONG FunctionRva                               = ModuleConfig.AddressOfFunctions[FunctionOrdinal];
-                *pFunction                                      = (UCHAR*)hModule + FunctionRva;
+
+                *pFunction                                      = (VOID*)(((CHAR*)hModule) + pAddressOfFunctions[pAddressOfNameOrdinals[i]]);
                 return TRUE;
         }
         *pFunction                                              = NULL;
         return FALSE;
 }
 
-BOOL ResolveFunction(ULONG ModuleHash, ULONG FunctionHash, VOID **pFunction) {
-        VOID *hModule                                           = NULL;
+BOOL ResolveFunction(ULONG ModuleHash, ULONG FunctionHash, VOID** pFunction) {
+        VOID* hModule                                           = NULL;
 
-        if (!GetModule(ModuleHash, &hModule))
+        if (!GetModule(ModuleHash, &hModule)) {
+                *pFunction                                      = NULL;
                 return FALSE;
-
+        }
         if (!GetFunction(hModule, FunctionHash, pFunction)) {
                 *pFunction                                      = NULL;
                 return FALSE;
@@ -99,13 +91,13 @@ LONG VectoredExceptionHandler(EXCEPTION_POINTERS* pBreakPoint) {
         if (pBreakPoint->ExceptionRecord->ExceptionCode != EXCEPTION_SINGLE_STEP) {
                 return EXCEPTION_CONTINUE_SEARCH;
         }
-        switch (LOOKUP) {
+        switch (SyscallInformationLookup) {
         case 0:
                 if (*(USHORT*)(pBreakPoint->ExceptionRecord->ExceptionAddress - 2) != 0x050F) {
                         pBreakPoint->ContextRecord->EFlags     |= 0x100;
                         break;
                 }
-                *(VOID**)pBreakPoint->ContextRecord->Rsp        = RRTN;
+                *(VOID**)pBreakPoint->ContextRecord->Rsp        = RealReturnAddress;
                 pBreakPoint->ContextRecord->Rip                 = (ULONG_PTR)TRAMPOLINE_EXIT;
                 break;
         case 1:
@@ -113,19 +105,18 @@ LONG VectoredExceptionHandler(EXCEPTION_POINTERS* pBreakPoint) {
                         pBreakPoint->ContextRecord->EFlags     |= 0x100;
                         break;
                 }
-                ENTRY                                           = (VOID*)pBreakPoint->ContextRecord->Rip;
-                SSN                                             = (ULONG)pBreakPoint->ContextRecord->Rax;
+                FunctionEntry                                   = (VOID*)pBreakPoint->ContextRecord->Rip;
+                SystemServiceNumber                             = (ULONG)pBreakPoint->ContextRecord->Rax;
                 pBreakPoint->ContextRecord->Rip                 = (ULONG_PTR)TRAMPOLINE_EXIT;
                 break;
         }
         return EXCEPTION_CONTINUE_EXECUTION;
 }
 
-VOID *RtlAddVectoredExceptionHandler(ULONG First, VOID *Handler) {
+VOID* RtlAddVectoredExceptionHandler(ULONG First, VOID* Handler) {
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__RtlAddVectoredExceptionHandler,
-                &ENTRY
+                ROR7_32__RtlAddVectoredExceptionHandler
         );
         return RUN_FUNCTION(
                 First,
@@ -133,24 +124,22 @@ VOID *RtlAddVectoredExceptionHandler(ULONG First, VOID *Handler) {
         );
 }
 
-VOID *RtlAllocateHeap(VOID *hHeap, ULONG Flags, ULONG_PTR Size) {
+VOID* RtlAllocateHeap(VOID* hHeap, ULONG Flags, ULONG_PTR Size) {
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__RtlAllocateHeap,
-                &ENTRY
+                ROR7_32__RtlAllocateHeap
         );
         return RUN_FUNCTION(
-                hHeap, 
-                Flags, 
+                hHeap,
+                Flags,
                 Size
         );
 }
 
-BOOL RtlFreeHeap(VOID *hHeap, ULONG Flags, VOID *pAddress) {
+BOOL RtlFreeHeap(VOID* hHeap, ULONG Flags, VOID* pAddress) {
         SET_FUNCTION(
                 ROR7_32__NTDLL,
-                ROR7_32__RtlFreeHeap,
-                &ENTRY
+                ROR7_32__RtlFreeHeap
         );
         return (BOOL)RUN_FUNCTION(
                 hHeap,
